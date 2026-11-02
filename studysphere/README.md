@@ -63,7 +63,9 @@ Configure these yourself before deploying:
 2. Run migrations once against Neon: `npx prisma migrate deploy` (from your machine or CI), then optionally `npx prisma db seed`.
 3. **Vercel** — import the repo / `studysphere` app root; set env vars from `.env.example`.
 4. **Vercel Blob** — create a **Private** store, connect it to the project (`BLOB_READ_WRITE_TOKEN` / store OIDC).
-5. Set `AUTH_SECRET` and production `AUTH_URL`.
+5. Set `AUTH_SECRET` and production `AUTH_URL=https://www.studysphere.space`.
+   If published notes show “file not found”, run `npm run db:restore-files` with
+   `BLOB_READ_WRITE_TOKEN` so PDFs are written to Vercel Blob.
 6. Build command uses `prisma generate && next build` (migrations are **not** run during the Vercel build).
 
 See [docs/VERCEL_MIGRATION.md](./docs/VERCEL_MIGRATION.md) for details, blockers, and serverless notes.
@@ -86,8 +88,9 @@ Delivered through [Resend](https://resend.com). Set these in Vercel (Production/
 
 - `RESEND_API_KEY` — Resend API key (server-only; never `NEXT_PUBLIC_`)
 - `EMAIL_FROM` — verified sender, e.g. `StudySphere <no-reply@your-domain.com>`
-- `AUTH_URL` — public origin used to build verification/reset links
-  (`https://studysphere.space`). Localhost is never used in those emails.
+- `AUTH_URL` — public origin (`https://www.studysphere.space`). Never set this to
+  localhost in Vercel Production — Auth.js will redirect login there.
+  Email links also use this origin (apex `https://studysphere.space` still 308s to www).
 
 That enables:
 
