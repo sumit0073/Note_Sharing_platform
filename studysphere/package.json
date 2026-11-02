@@ -18,6 +18,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:create-admin": "tsx --env-file-if-exists=.env prisma/create-admin.ts",
     "db:restore-files": "tsx --env-file-if-exists=.env prisma/restore-note-files.ts",
+    "db:normalize-downloads": "tsx --env-file-if-exists=.env prisma/normalize-seed-downloads.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {

@@ -69,8 +69,9 @@ export default async function SearchPage({
             <section>
               <h2 className="font-serif text-2xl">Community notes</h2>
               <p className="mt-1 text-sm text-muted">
-                {result.pagination.communityTotal} result
-                {result.pagination.communityTotal === 1 ? "" : "s"}
+                {result.pagination.communityTotal === 1
+                  ? "1 result"
+                  : `${result.pagination.communityTotal} results`}
                 {result.pagination.communityTotalPages > 1
                   ? ` · page ${result.pagination.page} of ${result.pagination.communityTotalPages}`
                   : ""}

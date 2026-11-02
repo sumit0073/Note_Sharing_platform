@@ -2,9 +2,8 @@ import { prisma } from "@/lib/db";
 import { extractDomain } from "@/lib/utils";
 import {
   isLikelyEducationalDomain,
+  isRelevantToQuery,
   scoreExternalResource,
-  tokenize,
-  containsTerm,
 } from "@/lib/search/ranking";
 
 export type NormalizedResource = {
@@ -53,7 +52,6 @@ async function searchCatalog(
   query: string,
   trusted: Trusted[],
 ): Promise<NormalizedResource[]> {
-  const terms = tokenize(query);
   const catalog = await prisma.externalResource.findMany();
   return catalog
     .map((item) => {
@@ -67,8 +65,6 @@ async function searchCatalog(
         query,
         boostFor(item.domain, trusted),
       );
-      const haystack = `${item.title} ${item.description} ${item.domain}`;
-      const matched = terms.some((term) => containsTerm(haystack, term));
       return {
         id: item.id,
         title: item.title,
@@ -79,14 +75,12 @@ async function searchCatalog(
         sourceType: item.sourceType,
         thumbnail: item.thumbnail,
         relevance,
-        matched,
       };
     })
-    .filter((item) => item.matched || item.relevance > 0.2)
-    .map(({ matched, ...item }) => {
-      void matched;
-      return item;
-    });
+    .filter(
+      (item) =>
+        isRelevantToQuery(item.title, item.description, query) && item.relevance >= 0.2,
+    );
 }
 
 async function searchWikipedia(query: string, trusted: Trusted[]): Promise<NormalizedResource[]> {
@@ -216,5 +210,10 @@ export async function searchExternalResources(
   });
 
   unique.sort((a, b) => b.relevance - a.relevance);
-  return unique.filter((item) => item.relevance >= 0.15).slice(0, 12);
+  return unique
+    .filter(
+      (item) =>
+        isRelevantToQuery(item.title, item.description, query) && item.relevance >= 0.25,
+    )
+    .slice(0, 12);
 }

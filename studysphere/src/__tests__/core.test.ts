@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isRelevantToQuery,
   scoreCommunityNote,
   scoreExternalResource,
   termMatchScore,
@@ -11,6 +12,10 @@ import { canManageNote, isAdmin } from "@/lib/permissions";
 describe("tokenize", () => {
   it("drops short tokens and punctuation", () => {
     expect(tokenize("DBMS: normalization?")).toEqual(["dbms", "normalization"]);
+  });
+
+  it("drops generic academic stopwords", () => {
+    expect(tokenize("Operating System deadlock notes")).toEqual(["operating", "deadlock"]);
   });
 });
 
@@ -62,6 +67,26 @@ describe("external ranking", () => {
       1,
     );
     expect(trusted).toBeGreaterThan(untrusted);
+  });
+
+  it("does not keep a DBMS page for an OS deadlock query", () => {
+    expect(
+      isRelevantToQuery(
+        "NPTEL Database Management System",
+        "NPTEL lectures and notes on DBMS, including normalization.",
+        "Operating System deadlock",
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps a deadlock encyclopedia article for an OS deadlock query", () => {
+    expect(
+      isRelevantToQuery(
+        "Deadlock (computer science)",
+        "Encyclopedia article covering deadlock conditions and handling strategies.",
+        "Operating System deadlock",
+      ),
+    ).toBe(true);
   });
 });
 
