@@ -24,27 +24,19 @@ describe("appUrl", () => {
     );
   });
 
-  it("never emits localhost links in production when AUTH_URL is local", () => {
+  it("never emits localhost links when AUTH_URL is local", () => {
     env.AUTH_URL = "http://localhost:3000";
-    env.NODE_ENV = "production";
+    env.NODE_ENV = "development";
     expect(appUrl("/reset-password?token=xyz")).toBe(
       "https://studysphere.space/reset-password?token=xyz",
     );
   });
 
-  it("falls back to studysphere.space in production when AUTH_URL is missing", () => {
-    delete env.AUTH_URL;
-    env.NODE_ENV = "production";
-    expect(appUrl("/verify-email?token=abc")).toBe(
-      "https://studysphere.space/verify-email?token=abc",
-    );
-  });
-
-  it("allows localhost in development when AUTH_URL is missing", () => {
+  it("falls back to studysphere.space when AUTH_URL is missing", () => {
     delete env.AUTH_URL;
     env.NODE_ENV = "development";
     expect(appUrl("/verify-email?token=abc")).toBe(
-      "http://localhost:3000/verify-email?token=abc",
+      "https://studysphere.space/verify-email?token=abc",
     );
   });
 });

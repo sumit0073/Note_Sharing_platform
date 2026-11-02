@@ -38,20 +38,17 @@ function isLocalOrigin(origin: string): boolean {
 }
 
 /**
- * Absolute app URL for email links.
- * Prefer AUTH_URL. In production, never emit localhost — fall back to the
- * canonical StudySphere origin when AUTH_URL is missing or local.
+ * Absolute app URL for email links (verify / reset).
+ * Prefer AUTH_URL when it is a public origin. Never emit localhost — those
+ * links cannot be opened by other people, so fall back to the canonical
+ * StudySphere origin instead.
  */
 export function appUrl(path = ""): string {
   const configured = process.env.AUTH_URL?.trim().replace(/\/$/, "") || "";
-  const isProduction = process.env.NODE_ENV === "production";
-
-  let base = configured;
-  if (!base) {
-    base = isProduction ? PRODUCTION_APP_ORIGIN : "http://localhost:3000";
-  } else if (isProduction && isLocalOrigin(base)) {
-    base = PRODUCTION_APP_ORIGIN;
-  }
+  const base =
+    configured && !isLocalOrigin(configured)
+      ? configured
+      : PRODUCTION_APP_ORIGIN;
 
   const normalizedPath = path.startsWith("/") ? path : path ? `/${path}` : "";
   return `${base}${normalizedPath}`;

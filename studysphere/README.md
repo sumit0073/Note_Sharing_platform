@@ -86,8 +86,8 @@ Delivered through [Resend](https://resend.com). Set these in Vercel (Production/
 
 - `RESEND_API_KEY` — Resend API key (server-only; never `NEXT_PUBLIC_`)
 - `EMAIL_FROM` — verified sender, e.g. `StudySphere <no-reply@your-domain.com>`
-- `AUTH_URL` — production origin used to build verification/reset links
-  (e.g. `https://your-app.vercel.app`)
+- `AUTH_URL` — public origin used to build verification/reset links
+  (`https://studysphere.space`). Localhost is never used in those emails.
 
 That enables:
 
