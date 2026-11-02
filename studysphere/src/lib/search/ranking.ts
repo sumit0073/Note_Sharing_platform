@@ -10,7 +10,28 @@ export const COMMUNITY_WEIGHTS = {
   recency: 0.05,
 } as const;
 
-const STOPWORDS = new Set(["the", "and", "for", "of", "in", "to", "a", "an", "on", "vs"]);
+const STOPWORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "of",
+  "in",
+  "to",
+  "a",
+  "an",
+  "on",
+  "vs",
+  "system",
+  "systems",
+  "notes",
+  "note",
+  "unit",
+  "lecture",
+  "introduction",
+  "course",
+  "paper",
+  "pdf",
+]);
 
 export function tokenize(query: string): string[] {
   return query
@@ -34,6 +55,26 @@ export function termMatchScore(text: string, terms: string[]): number {
 export function phraseBonus(text: string, query: string): number {
   if (!text || !query.trim()) return 0;
   return text.toLowerCase().includes(query.toLowerCase().trim()) ? 0.15 : 0;
+}
+
+/** How many distinctive query terms must appear for an external hit to be kept. */
+export function minTermHits(terms: string[]): number {
+  if (terms.length <= 2) return Math.min(1, terms.length);
+  return Math.ceil(terms.length * 0.5);
+}
+
+export function termHitCount(text: string, terms: string[]): number {
+  if (!text || terms.length === 0) return 0;
+  return terms.filter((term) => containsTerm(text, term)).length;
+}
+
+/** Drop catalog/web hits that only share a generic word with the query. */
+export function isRelevantToQuery(title: string, description: string, query: string): boolean {
+  const terms = tokenize(query);
+  if (terms.length === 0) return false;
+  const haystack = `${title} ${description}`;
+  if (phraseBonus(haystack, query) > 0) return true;
+  return termHitCount(haystack, terms) >= minTermHits(terms);
 }
 
 export type CommunityNoteSignals = {
@@ -96,6 +137,8 @@ export function scoreExternalResource(
     termMatchScore(resource.title, terms) * 0.7 +
     termMatchScore(resource.description, terms) * 0.3 +
     phraseBonus(resource.title, query);
+
+  if (keyword <= 0) return 0;
 
   const typeBoost =
     resource.sourceType === "university"

@@ -93,7 +93,7 @@ async function main() {
       subject: os,
       unit: "3",
       tags: ["deadlock", "scheduling", "processes", "banker"],
-      downloads: 1203,
+      downloads: 14,
       uploader: student,
       lines: [
         "Four necessary conditions: mutual exclusion, hold and wait,",
@@ -108,7 +108,7 @@ async function main() {
       subject: dbms,
       unit: "4",
       tags: ["normalization", "dbms", "bcnf", "dependencies"],
-      downloads: 980,
+      downloads: 11,
       uploader: peer,
       lines: [
         "Normalization reduces redundancy using functional dependencies.",
@@ -123,7 +123,7 @@ async function main() {
       subject: dsa,
       unit: "5",
       tags: ["trees", "graphs", "bfs", "dfs"],
-      downloads: 640,
+      downloads: 8,
       uploader: student,
       lines: [
         "BFS explores level by level. DFS goes deep first.",
@@ -137,7 +137,7 @@ async function main() {
       subject: cn,
       unit: "2",
       tags: ["osi", "tcp", "routing", "congestion"],
-      downloads: 410,
+      downloads: 6,
       uploader: peer,
       lines: [
         "OSI has seven layers. TCP/IP has four.",
@@ -151,7 +151,7 @@ async function main() {
       subject: os,
       unit: "3",
       tags: ["deadlock", "prevention", "os"],
-      downloads: 220,
+      downloads: 4,
       uploader: peer,
       lines: [
         "Prevention is conservative. Avoidance is safer with more information.",

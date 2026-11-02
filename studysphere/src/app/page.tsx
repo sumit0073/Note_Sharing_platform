@@ -4,10 +4,14 @@ import { SearchForm } from "@/components/search-form";
 import { prisma } from "@/lib/db";
 
 export default async function HomePage() {
+  const published = { status: "PUBLISHED" as const };
   const [notes, users, downloads] = await Promise.all([
-    prisma.note.count({ where: { status: "PUBLISHED" } }),
-    prisma.user.count(),
-    prisma.note.aggregate({ _sum: { downloads: true } }),
+    prisma.note.count({ where: published }),
+    prisma.user.count({ where: { status: "ACTIVE", role: "STUDENT" } }),
+    prisma.note.aggregate({
+      where: published,
+      _sum: { downloads: true },
+    }),
   ]);
 
   return (
