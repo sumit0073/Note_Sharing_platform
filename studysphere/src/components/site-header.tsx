@@ -16,8 +16,14 @@ export async function SiteHeader() {
   const mobileLinks: MobileNavLink[] = [
     ...desktopLinks,
     ...(session?.user
-      ? [{ href: "/profile", label: "Profile" } satisfies MobileNavLink]
-      : []),
+      ? [
+          { href: "/dashboard", label: "Dashboard" } satisfies MobileNavLink,
+          { href: "/profile", label: "Profile" } satisfies MobileNavLink,
+        ]
+      : [
+          { href: "/login", label: "Log in" } satisfies MobileNavLink,
+          { href: "/register", label: "Join", tone: "cta" as const } satisfies MobileNavLink,
+        ]),
     ...(session?.user.role === "ADMIN"
       ? [{ href: "/admin", label: "Admin", tone: "accent" as const }]
       : []),
@@ -40,10 +46,10 @@ export async function SiteHeader() {
               </Link>
             )}
           </nav>
-          <div className="flex items-center gap-2 text-sm">
+          <div className="hidden items-center gap-2 text-sm md:flex">
             {session?.user ? (
               <>
-                <Link href="/dashboard" className="hidden text-muted hover:text-ink sm:inline">
+                <Link href="/dashboard" className="text-muted hover:text-ink">
                   {session.user.name}
                 </Link>
                 <form
@@ -71,7 +77,7 @@ export async function SiteHeader() {
               </>
             )}
           </div>
-          <MobileNav links={mobileLinks} />
+          <MobileNav links={mobileLinks} signedIn={Boolean(session?.user)} />
         </div>
       </div>
     </header>

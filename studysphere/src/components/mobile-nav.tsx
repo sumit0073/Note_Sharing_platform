@@ -2,20 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { Menu, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 export type MobileNavLink = {
   href: string;
   label: string;
-  tone?: "default" | "accent";
+  tone?: "default" | "accent" | "cta";
 };
 
 type MobileNavProps = {
   links: MobileNavLink[];
+  signedIn?: boolean;
 };
 
-export function MobileNav({ links }: MobileNavProps) {
+export function MobileNav({ links, signedIn = false }: MobileNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [menuPathname, setMenuPathname] = useState(pathname);
@@ -84,14 +86,30 @@ export function MobileNav({ links }: MobileNavProps) {
                 href={link.href}
                 onClick={close}
                 className={
-                  link.tone === "accent"
-                    ? "rounded-xl px-3 py-3 text-sm text-terracotta hover:bg-parchment hover:text-ink"
-                    : "rounded-xl px-3 py-3 text-sm text-muted hover:bg-parchment hover:text-ink"
+                  link.tone === "cta"
+                    ? "mt-1 rounded-xl bg-forest px-3 py-3 text-center text-sm text-white hover:bg-forest-dark"
+                    : link.tone === "accent"
+                      ? "rounded-xl px-3 py-3 text-sm text-terracotta hover:bg-parchment hover:text-ink"
+                      : "rounded-xl px-3 py-3 text-sm text-muted hover:bg-parchment hover:text-ink"
                 }
               >
                 {link.label}
               </Link>
             ))}
+            {signedIn ? (
+              <div className="mt-1 border-t border-line pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    close();
+                    void signOut({ callbackUrl: "/" });
+                  }}
+                  className="w-full rounded-xl px-3 py-3 text-left text-sm text-muted hover:bg-parchment hover:text-ink"
+                >
+                  Log out
+                </button>
+              </div>
+            ) : null}
           </nav>
         </div>
       )}

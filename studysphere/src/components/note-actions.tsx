@@ -18,7 +18,13 @@ export function NoteActions({
 }) {
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
   const [reason, setReason] = useState<(typeof REPORT_REASONS)[number]>("WRONG_INFORMATION");
+
+  function announce(text: string, url = "") {
+    setShareUrl(url);
+    setMessage(text);
+  }
 
   async function track(clickType: string) {
     if (!searchId) return;
@@ -35,17 +41,49 @@ export function NoteActions({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "NOTE", noteId }),
     });
-    setMessage(response.ok ? "Saved to your library." : "Sign in to bookmark notes.");
+    announce(response.ok ? "Saved to your library." : "Sign in to bookmark notes.");
+  }
+
+  async function copyLink(url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = url;
+      input.setAttribute("readonly", "");
+      input.style.position = "absolute";
+      input.style.left = "0";
+      input.style.top = "0";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.focus();
+      input.select();
+      input.setSelectionRange(0, url.length);
+      const ok = document.execCommand("copy");
+      document.body.removeChild(input);
+      return ok;
+    }
   }
 
   async function share() {
     const url = window.location.href;
-    if (navigator.share) {
-      await navigator.share({ title: "StudySphere note", url });
-    } else {
-      await navigator.clipboard.writeText(url);
-      setMessage("Link copied.");
+    const preferNativeShare =
+      typeof navigator.share === "function" &&
+      window.matchMedia("(pointer: coarse)").matches;
+
+    if (preferNativeShare) {
+      try {
+        await navigator.share({ title: "StudySphere note", url });
+        announce("Link shared.");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
     }
+
+    const copied = await copyLink(url);
+    announce(copied ? "Link copied." : "Copy this link.", copied ? "" : url);
   }
 
   async function rate() {
@@ -55,7 +93,7 @@ export function NoteActions({
       body: JSON.stringify({ rating, helpful: rating >= 4 }),
     });
     const data = await response.json();
-    setMessage(response.ok ? "Rating saved." : data.error ?? "Could not save rating.");
+    announce(response.ok ? "Rating saved." : data.error ?? "Could not save rating.");
   }
 
   async function report() {
@@ -65,7 +103,7 @@ export function NoteActions({
       body: JSON.stringify({ reason }),
     });
     const data = await response.json();
-    setMessage(response.ok ? "Report submitted." : data.error ?? "Could not submit report.");
+    announce(response.ok ? "Report submitted." : data.error ?? "Could not submit report.");
   }
 
   return (
@@ -90,10 +128,10 @@ export function NoteActions({
             Download
           </a>
         )}
-        <button onClick={bookmark} className="rounded-full border border-line px-4 py-2 text-sm">
+        <button type="button" onClick={bookmark} className="rounded-full border border-line px-4 py-2 text-sm">
           Bookmark
         </button>
-        <button onClick={share} className="rounded-full border border-line px-4 py-2 text-sm">
+        <button type="button" onClick={share} className="rounded-full border border-line px-4 py-2 text-sm">
           Share
         </button>
       </div>
@@ -139,7 +177,19 @@ export function NoteActions({
           Submit report
         </button>
       </div>
-      {message && <p className="text-sm text-forest">{message}</p>}
+      {message && (
+        <div className="space-y-2" role="status" aria-live="polite">
+          <p className="text-sm text-forest">{message}</p>
+          {shareUrl ? (
+            <input
+              readOnly
+              value={shareUrl}
+              onFocus={(event) => event.currentTarget.select()}
+              className="w-full rounded-xl border border-line bg-paper px-3 py-2 text-xs text-ink"
+            />
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
