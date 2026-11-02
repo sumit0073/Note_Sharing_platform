@@ -4,6 +4,13 @@ import { compare } from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { loginSchema } from "@/lib/validations";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import {
+  canonicalAppOrigin,
+  ensureProductionAuthUrl,
+  isLocalOrigin,
+} from "@/lib/app-origin";
+
+ensureProductionAuthUrl();
 
 /** Thrown when Turnstile Siteverify fails — maps to a friendly login message. */
 export class TurnstileSignin extends CredentialsSignin {
@@ -58,6 +65,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      const origin = canonicalAppOrigin();
+      const safeBase = isLocalOrigin(baseUrl) ? origin : baseUrl.replace(/\/$/, "");
+      if (url.startsWith("/")) return `${safeBase}${url}`;
+      try {
+        const next = new URL(url);
+        if (isLocalOrigin(next.origin)) {
+          return `${safeBase}${next.pathname}${next.search}`;
+        }
+        const allowed = new Set([
+          safeBase,
+          "https://www.studysphere.space",
+          "https://studysphere.space",
+        ]);
+        if (allowed.has(next.origin)) return next.toString();
+      } catch {
+        /* fall through */
+      }
+      return safeBase;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id!;

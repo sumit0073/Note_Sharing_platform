@@ -2,6 +2,7 @@ import {
   buildPasswordResetEmail,
   buildVerificationEmail,
 } from "@/lib/email-templates";
+import { publicSiteOrigin } from "@/lib/app-origin";
 
 type Mail = {
   to: string;
@@ -12,7 +13,6 @@ type Mail = {
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const SEND_TIMEOUT_MS = 10_000;
-const PRODUCTION_APP_ORIGIN = "https://studysphere.space";
 
 /**
  * Email delivery via Resend.
@@ -28,15 +28,6 @@ export function isEmailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
 }
 
-function isLocalOrigin(origin: string): boolean {
-  try {
-    const host = new URL(origin).hostname;
-    return host === "localhost" || host === "127.0.0.1" || host === "::1";
-  } catch {
-    return /localhost|127\.0\.0\.1/i.test(origin);
-  }
-}
-
 /**
  * Absolute app URL for email links (verify / reset).
  * Prefer AUTH_URL when it is a public origin. Never emit localhost — those
@@ -44,12 +35,7 @@ function isLocalOrigin(origin: string): boolean {
  * StudySphere origin instead.
  */
 export function appUrl(path = ""): string {
-  const configured = process.env.AUTH_URL?.trim().replace(/\/$/, "") || "";
-  const base =
-    configured && !isLocalOrigin(configured)
-      ? configured
-      : PRODUCTION_APP_ORIGIN;
-
+  const base = publicSiteOrigin();
   const normalizedPath = path.startsWith("/") ? path : path ? `/${path}` : "";
   return `${base}${normalizedPath}`;
 }

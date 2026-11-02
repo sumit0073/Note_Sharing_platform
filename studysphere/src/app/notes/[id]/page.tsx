@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { NoteActions } from "@/components/note-actions";
 import { canReadNoteMetadata } from "@/lib/note-access";
+import { ensureNoteFile } from "@/lib/note-files";
 import { average, formatBytes, timeAgo } from "@/lib/utils";
 
 export default async function NotePage({
@@ -39,7 +40,10 @@ export default async function NotePage({
   }
 
   const avgRating = average(note.ratings.map((r) => r.rating));
-  const previewUrl = `/api/files/${note.fileUrl}`;
+  const ensured = session?.user ? await ensureNoteFile(note) : null;
+  const fileUrl = ensured?.relativePath ?? note.fileUrl;
+  const previewUrl = `/api/files/${fileUrl}`;
+  const fileAvailable = Boolean(ensured?.file);
 
   return (
     <section className="mx-auto grid max-w-6xl gap-8 px-4 py-10 lg:grid-cols-[1.4fr_0.8fr]">
@@ -71,6 +75,10 @@ export default async function NotePage({
                 Log in
               </a>
             </div>
+          ) : !fileAvailable ? (
+            <div className="p-8 text-sm text-muted">
+              This file is currently unavailable. Please try again later.
+            </div>
           ) : note.fileType === "pdf" ? (
             <iframe title="PDF preview" src={previewUrl} className="h-[70vh] w-full" />
           ) : (
@@ -85,6 +93,8 @@ export default async function NotePage({
         <NoteActions
           noteId={note.id}
           searchId={searchId}
+          isSignedIn={Boolean(session?.user)}
+          fileAvailable={fileAvailable}
           canRate={Boolean(session?.user && session.user.id !== note.uploaderId)}
         />
       </aside>

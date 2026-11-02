@@ -7,10 +7,14 @@ export function NoteActions({
   noteId,
   searchId,
   canRate,
+  isSignedIn,
+  fileAvailable = true,
 }: {
   noteId: string;
   searchId?: string;
   canRate: boolean;
+  isSignedIn: boolean;
+  fileAvailable?: boolean;
 }) {
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
@@ -67,13 +71,25 @@ export function NoteActions({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        <a
-          href={`/api/notes/${noteId}/download`}
-          onClick={() => track("community")}
-          className="rounded-full bg-forest px-4 py-2 text-sm text-white hover:bg-forest-dark"
-        >
-          Download
-        </a>
+        {isSignedIn && !fileAvailable ? (
+          <span className="rounded-full bg-forest/50 px-4 py-2 text-sm text-white">
+            File unavailable
+          </span>
+        ) : (
+          <a
+            href={
+              isSignedIn
+                ? `/api/notes/${noteId}/download`
+                : `/login?next=${encodeURIComponent(`/notes/${noteId}`)}`
+            }
+            onClick={() => {
+              if (isSignedIn) track("community");
+            }}
+            className="rounded-full bg-forest px-4 py-2 text-sm text-white hover:bg-forest-dark"
+          >
+            Download
+          </a>
+        )}
         <button onClick={bookmark} className="rounded-full border border-line px-4 py-2 text-sm">
           Bookmark
         </button>

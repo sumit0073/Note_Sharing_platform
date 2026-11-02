@@ -67,20 +67,32 @@ export async function saveNoteFile(options: {
       ? "application/pdf"
       : "application/octet-stream";
 
+  return writeStoredFile(relativePath, options.buffer, contentType);
+}
+
+/** Write bytes at an exact relative path (Blob or local disk). */
+export async function writeStoredFile(
+  relativePath: string,
+  buffer: Buffer,
+  contentType = "application/pdf",
+): Promise<{ relativePath: string }> {
+  const safe = sanitizeRelativePath(relativePath);
+  if (!safe) throw new Error("Invalid storage path");
+
   if (isBlobStorageEnabled()) {
-    await put(relativePath, options.buffer, {
+    await put(safe, buffer, {
       access: "private",
       contentType,
       addRandomSuffix: false,
     });
-    return { relativePath };
+    return { relativePath: safe };
   }
 
-  const absolute = resolveLocalAbsolute(relativePath);
+  const absolute = resolveLocalAbsolute(safe);
   if (!absolute) throw new Error("Invalid storage path");
   await mkdir(/* turbopackIgnore: true */ path.dirname(absolute), { recursive: true });
-  await writeFile(/* turbopackIgnore: true */ absolute, options.buffer);
-  return { relativePath };
+  await writeFile(/* turbopackIgnore: true */ absolute, buffer);
+  return { relativePath: safe };
 }
 
 export async function verifyStoredObject(

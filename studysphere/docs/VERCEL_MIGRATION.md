@@ -64,7 +64,7 @@ Required for production:
 - `DATABASE_URL` (Neon pooled)
 - `DIRECT_URL` (Neon direct / non-pooler)
 - `AUTH_SECRET`
-- `AUTH_URL`
+- `AUTH_URL` (`https://www.studysphere.space` — never `http://localhost:3000`)
 - `BLOB_READ_WRITE_TOKEN` and/or connected Blob store (`BLOB_STORE_ID`)
 - `RESEND_API_KEY`
 - `EMAIL_FROM` (address on a domain verified in Resend)

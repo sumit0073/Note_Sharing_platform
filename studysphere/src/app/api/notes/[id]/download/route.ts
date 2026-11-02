@@ -1,21 +1,38 @@
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
+import { loginUrl, wantsHtml } from "@/lib/app-origin";
 import { requireActiveUser } from "@/lib/session";
-import { openStoredFile } from "@/lib/storage";
+import { ensureNoteFile } from "@/lib/note-files";
+import { NextResponse } from "next/server";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const gate = await requireActiveUser("Sign in to download notes");
-  if (!gate.ok) return gate.response;
-
   const { id } = await context.params;
-  const note = await prisma.note.findUnique({ where: { id } });
-  if (!note || note.status !== "PUBLISHED") return jsonError("Note not found", 404);
+  const gate = await requireActiveUser("Sign in to download notes");
+  if (!gate.ok) {
+    if (wantsHtml(request)) {
+      return NextResponse.redirect(loginUrl(request, `/notes/${id}`));
+    }
+    return gate.response;
+  }
 
-  const file = await openStoredFile(note.fileUrl);
-  if (!file) return jsonError("File missing", 404);
+  const note = await prisma.note.findUnique({ where: { id } });
+  if (!note || note.status !== "PUBLISHED") {
+    return jsonError("Note not found", 404);
+  }
+
+  const { file } = await ensureNoteFile(note);
+  if (!file) {
+    if (wantsHtml(request)) {
+      return new NextResponse(
+        "This file is currently unavailable. Please try again later.",
+        { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+      );
+    }
+    return jsonError("File missing", 404);
+  }
 
   await prisma.note.update({
     where: { id },
