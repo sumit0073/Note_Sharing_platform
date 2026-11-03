@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -12,14 +12,11 @@ import { loginAction } from "./actions";
 function LoginForm() {
   const searchParams = useSearchParams();
   const [resetSignal, setResetSignal] = useState(0);
-  const [error, action, pending] = useActionState(
-    async (prev: string | undefined, formData: FormData) => {
-      const result = await loginAction(prev, formData);
-      if (result) setResetSignal((value) => value + 1);
-      return result;
-    },
-    undefined,
-  );
+  const [error, action, pending] = useActionState(loginAction, undefined);
+
+  useEffect(() => {
+    if (error) setResetSignal((value) => value + 1);
+  }, [error]);
 
   return (
     <>

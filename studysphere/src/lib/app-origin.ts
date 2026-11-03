@@ -39,18 +39,36 @@ export function ensureProductionAuthUrl(): string {
   return resolved;
 }
 
-export function originFromRequest(request: Request): string {
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
+
+function requestHost(request: Request): string {
   const forwardedHost = request.headers.get("x-forwarded-host");
-  const host =
-    forwardedHost?.split(",")[0]?.trim() ||
-    request.headers.get("host")?.trim() ||
-    "";
-  if (host && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host)) {
-    const proto =
-      request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
+  return forwardedHost?.split(",")[0]?.trim() || request.headers.get("host")?.trim() || "";
+}
+
+export function originFromRequest(request: Request): string {
+  const host = requestHost(request);
+  if (!host) return canonicalAppOrigin();
+
+  const proto =
+    request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+    (LOCAL_HOST.test(host) ? "http" : "https");
+
+  if (LOCAL_HOST.test(host)) {
+    if (process.env.NODE_ENV === "production") return canonicalAppOrigin();
     return `${proto}://${host}`;
   }
-  return canonicalAppOrigin();
+
+  return `${proto}://${host}`;
+}
+
+/** Base Auth.js should redirect to. Keep localhost in local dev; never in production. */
+export function authRedirectBase(baseUrl: string): string {
+  const requestBase = baseUrl.replace(/\/$/, "");
+  if (process.env.NODE_ENV === "production" && isLocalOrigin(requestBase)) {
+    return canonicalAppOrigin();
+  }
+  return requestBase;
 }
 
 export function loginUrl(request: Request, nextPath: string): URL {

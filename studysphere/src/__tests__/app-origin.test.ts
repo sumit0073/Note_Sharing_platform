@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  authRedirectBase,
   canonicalAppOrigin,
   ensureProductionAuthUrl,
   loginUrl,
@@ -48,6 +49,26 @@ describe("request origin helpers", () => {
       },
     });
     expect(originFromRequest(request)).toBe("https://www.studysphere.space");
+  });
+
+  it("keeps localhost in development even when AUTH_URL is the live host", () => {
+    env.AUTH_URL = "https://www.studysphere.space";
+    env.NODE_ENV = "development";
+    const request = new Request("http://localhost:3000/dashboard", {
+      headers: { host: "localhost:3000" },
+    });
+    expect(originFromRequest(request)).toBe("http://localhost:3000");
+    expect(loginUrl(request, "/dashboard").toString()).toBe(
+      "http://localhost:3000/login?next=%2Fdashboard",
+    );
+  });
+
+  it("rewrites localhost Auth.js redirects only in production", () => {
+    env.AUTH_URL = "https://www.studysphere.space";
+    env.NODE_ENV = "development";
+    expect(authRedirectBase("http://localhost:3000")).toBe("http://localhost:3000");
+    env.NODE_ENV = "production";
+    expect(authRedirectBase("http://localhost:3000")).toBe("https://www.studysphere.space");
   });
 
   it("builds a login URL with next= for HTML guests", () => {
