@@ -57,6 +57,32 @@ export function phraseBonus(text: string, query: string): number {
   return text.toLowerCase().includes(query.toLowerCase().trim()) ? 0.15 : 0;
 }
 
+const WEAK_TERMS = new Set([
+  "operating",
+  "computer",
+  "software",
+  "science",
+  "management",
+  "data",
+  "real",
+  "time",
+  "distributed",
+  "modern",
+  "principles",
+  "parallel",
+  "computing",
+  "call",
+  "unix",
+  "engineering",
+]);
+
+/** Prefer specific tokens (deadlock) over generic ones (operating). */
+export function distinctiveTerms(query: string): string[] {
+  const terms = tokenize(query);
+  const strong = terms.filter((term) => !WEAK_TERMS.has(term));
+  return strong.length > 0 ? strong : terms;
+}
+
 /** How many distinctive query terms must appear for an external hit to be kept. */
 export function minTermHits(terms: string[]): number {
   if (terms.length <= 2) return Math.min(1, terms.length);
@@ -70,7 +96,7 @@ export function termHitCount(text: string, terms: string[]): number {
 
 /** Drop catalog/web hits that only share a generic word with the query. */
 export function isRelevantToQuery(title: string, description: string, query: string): boolean {
-  const terms = tokenize(query);
+  const terms = distinctiveTerms(query);
   if (terms.length === 0) return false;
   const haystack = `${title} ${description}`;
   if (phraseBonus(haystack, query) > 0) return true;

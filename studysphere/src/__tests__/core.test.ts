@@ -88,6 +88,23 @@ describe("external ranking", () => {
       ),
     ).toBe(true);
   });
+
+  it("does not keep OS-only pages for an OS deadlock query", () => {
+    expect(
+      isRelevantToQuery(
+        "Real-time operating system",
+        "An OS for real-time computing applications.",
+        "Operating System deadlock",
+      ),
+    ).toBe(false);
+    expect(
+      isRelevantToQuery(
+        "Fork (system call)",
+        "Primary method of process creation on Unix-like operating systems.",
+        "Operating System deadlock",
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("file validation", () => {

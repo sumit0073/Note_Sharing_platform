@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { loginSchema } from "@/lib/validations";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import {
+  authRedirectBase,
   canonicalAppOrigin,
   ensureProductionAuthUrl,
   isLocalOrigin,
@@ -66,16 +67,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async redirect({ url, baseUrl }) {
-      const origin = canonicalAppOrigin();
-      const safeBase = isLocalOrigin(baseUrl) ? origin : baseUrl.replace(/\/$/, "");
+      const safeBase = authRedirectBase(baseUrl);
       if (url.startsWith("/")) return `${safeBase}${url}`;
       try {
         const next = new URL(url);
         if (isLocalOrigin(next.origin)) {
-          return `${safeBase}${next.pathname}${next.search}`;
+          if (process.env.NODE_ENV === "production") {
+            return `${safeBase}${next.pathname}${next.search}`;
+          }
+          return `${next.origin}${next.pathname}${next.search}`;
         }
         const allowed = new Set([
           safeBase,
+          canonicalAppOrigin(),
           "https://www.studysphere.space",
           "https://studysphere.space",
         ]);

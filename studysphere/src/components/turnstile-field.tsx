@@ -210,6 +210,7 @@ export function TurnstileField({
         role="group"
         aria-labelledby={labelId}
         aria-describedby={statusId}
+        suppressHydrationWarning
       />
       <input type="hidden" name={name} value={token} readOnly />
       <p id={statusId} className="sr-only" aria-live="polite">
