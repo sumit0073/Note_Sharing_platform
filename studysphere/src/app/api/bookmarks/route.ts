@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { canReadNoteMetadata } from "@/lib/note-access";
 import { jsonError, jsonOk } from "@/lib/http";
 import { createNoteBookmark } from "@/lib/bookmarks";
 import { requireActiveUser } from "@/lib/session";
@@ -36,7 +37,16 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return jsonOk(bookmarks);
+  const visibleBookmarks = bookmarks.filter((bookmark) =>
+    !bookmark.note || canReadNoteMetadata({
+      status: bookmark.note.status,
+      uploaderId: bookmark.note.uploaderId,
+      viewerId: gate.user.id,
+      viewerRole: gate.user.role,
+    }),
+  );
+
+  return jsonOk(visibleBookmarks);
 }
 
 export async function POST(request: Request) {
