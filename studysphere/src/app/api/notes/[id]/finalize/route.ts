@@ -24,6 +24,7 @@ export async function POST(
       id,
       uploaderId: gate.user.id,
       status: "PENDING",
+      uploadPending: true,
     },
   });
   if (!note) return jsonError("Pending upload not found", 404);
@@ -38,12 +39,23 @@ export async function POST(
     return jsonError("Uploaded file exceeds the declared size", 400);
   }
 
-  const published = await prisma.note.update({
-    where: { id: note.id },
+  const completed = await prisma.note.updateMany({
+    where: {
+      id: note.id,
+      uploaderId: gate.user.id,
+      status: "PENDING",
+      uploadPending: true,
+    },
     data: {
       status: "PUBLISHED",
+      uploadPending: false,
       fileSize: stored.size,
     },
+  });
+  if (completed.count === 0) return jsonError("Pending upload not found", 404);
+
+  const published = await prisma.note.findUnique({
+    where: { id: note.id },
     include: { subject: true },
   });
 

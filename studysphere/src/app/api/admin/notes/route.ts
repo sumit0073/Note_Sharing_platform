@@ -29,9 +29,10 @@ export async function PATCH(request: Request) {
   if (!gate.ok) return gate.response;
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return jsonError("Invalid update");
+  // Revoke upload completion even when moderation leaves the status PENDING.
   const note = await prisma.note.update({
     where: { id: parsed.data.id },
-    data: { status: parsed.data.status },
+    data: { status: parsed.data.status, uploadPending: false },
   });
   if (parsed.data.status === "REMOVED") {
     await deleteStoredFile(note.fileUrl);
