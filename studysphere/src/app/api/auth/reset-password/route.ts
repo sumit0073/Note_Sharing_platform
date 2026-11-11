@@ -29,13 +29,27 @@ export async function POST(request: Request) {
     return jsonError("This reset link is invalid or has expired");
   }
 
-  await prisma.$transaction([
-    prisma.user.update({
+  const passwordHash = await hash(parsed.data.password, 12);
+  const updated = await prisma.$transaction(async (tx) => {
+    // The earlier lookup is only a precheck; consumption authorizes the update.
+    const consumed = await tx.passwordResetToken.deleteMany({
+      where: {
+        id: record.id,
+        expiresAt: { gte: new Date() },
+      },
+    });
+    if (consumed.count !== 1) return false;
+
+    await tx.user.update({
       where: { id: record.userId },
-      data: { passwordHash: await hash(parsed.data.password, 12) },
-    }),
-    prisma.passwordResetToken.deleteMany({ where: { userId: record.userId } }),
-  ]);
+      data: { passwordHash },
+    });
+    await tx.passwordResetToken.deleteMany({ where: { userId: record.userId } });
+    return true;
+  });
+  if (!updated) {
+    return jsonError("This reset link is invalid or has expired");
+  }
 
   return jsonOk({ message: "Password updated. You can now sign in." });
 }
