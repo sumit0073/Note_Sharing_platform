@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
-import { isAdmin } from "@/lib/permissions";
-import { requireActivePageUser } from "@/lib/session";
+import { requireAdminPageUser } from "@/lib/session";
 
 const items = [
   { href: "/admin", label: "Overview" },
@@ -19,8 +17,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await requireActivePageUser("/admin");
-  if (!isAdmin(user.role)) redirect("/dashboard");
+  await requireAdminPageUser("/admin");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

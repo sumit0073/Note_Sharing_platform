@@ -1,7 +1,10 @@
+import { requireAdminPageUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { AdminNotesClient } from "./notes-client";
 
 export default async function AdminNotesPage() {
+  await requireAdminPageUser("/admin/notes");
+
   const notes = await prisma.note.findMany({
     include: {
       uploader: { select: { name: true, email: true } },
