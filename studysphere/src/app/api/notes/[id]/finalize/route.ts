@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/http";
 import { requireActiveUser } from "@/lib/session";
@@ -38,14 +39,22 @@ export async function POST(
     return jsonError("Uploaded file exceeds the declared size", 400);
   }
 
-  const published = await prisma.note.update({
-    where: { id: note.id },
-    data: {
-      status: "PUBLISHED",
-      fileSize: stored.size,
-    },
-    include: { subject: true },
-  });
+  try {
+    const published = await prisma.note.update({
+      // Recheck authorization in the write so a concurrent removal wins.
+      where: { id: note.id, uploaderId: gate.user.id, status: "PENDING" },
+      data: {
+        status: "PUBLISHED",
+        fileSize: stored.size,
+      },
+      include: { subject: true },
+    });
 
-  return jsonOk(published);
+    return jsonOk(published);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return jsonError("Pending upload is no longer available", 409);
+    }
+    throw error;
+  }
 }

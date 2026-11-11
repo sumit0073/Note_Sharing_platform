@@ -84,8 +84,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         if (!note) return;
         if (blob.pathname !== note.fileUrl) return;
 
-        await prisma.note.update({
-          where: { id: note.id },
+        // Stale completion callbacks must not overwrite a removal.
+        await prisma.note.updateMany({
+          where: { id: note.id, uploaderId: payload.userId, status: "PENDING" },
           data: { status: "PUBLISHED" },
         });
       },
