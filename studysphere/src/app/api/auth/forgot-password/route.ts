@@ -29,7 +29,6 @@ export async function POST(request: Request) {
     where: { email: parsed.data.email.toLowerCase() },
   });
 
-  let resetUrl: string | undefined;
   if (user) {
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
     const token = randomBytes(32).toString("hex");
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
         expiresAt: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
-    resetUrl = appUrl(`/reset-password?token=${token}`);
+    const resetUrl = appUrl(`/reset-password?token=${token}`);
     await sendPasswordResetEmail({
       to: user.email,
       resetUrl,
@@ -49,6 +48,5 @@ export async function POST(request: Request) {
 
   return jsonOk({
     message: "If that email exists, a reset link has been sent.",
-    resetUrl: process.env.NODE_ENV === "production" ? undefined : resetUrl,
   });
 }

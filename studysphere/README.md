@@ -98,9 +98,16 @@ That enables:
 - forgot password
 - password reset
 
-Without `RESEND_API_KEY` / `EMAIL_FROM` no mail is sent; outside production the
-register and forgot-password responses return the link directly so local
-development still works. Production responses never include those links.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:9ee2678e134d950b12b97b07116d351a0666cc068c653ef47ec5f1d98365598d -->
+
+Without `RESEND_API_KEY` / `EMAIL_FROM` no mail is sent. Password reset requires
+email delivery in every environment; reset links are never returned in HTTP
+responses. Registration responses still return verification links outside
+production.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ## Cloudflare Turnstile
 
