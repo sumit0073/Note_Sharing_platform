@@ -183,7 +183,6 @@ export function isLikelyEducationalDomain(domain: string): boolean {
   return (
     host.endsWith(".edu") ||
     host.endsWith(".ac.in") ||
-    host.endsWith(".ac.uk") ||
-    host.includes(".edu.")
+    host.endsWith(".ac.uk")
   );
 }

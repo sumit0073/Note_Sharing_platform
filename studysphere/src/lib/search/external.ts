@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { extractDomain } from "@/lib/utils";
+import { normalizeExternalResource } from "@/lib/search/external-source";
 import {
   isLikelyEducationalDomain,
   isRelevantToQuery,
@@ -20,26 +20,6 @@ export type NormalizedResource = {
 
 type Trusted = { domain: string; boost: number };
 
-function classifySource(domain: string): string {
-  if (isLikelyEducationalDomain(domain)) return "university";
-  if (
-    domain.includes("wikipedia.org") ||
-    domain.includes("khanacademy.org") ||
-    domain.includes("nptel.ac.in") ||
-    domain.includes("ocw.mit.edu")
-  ) {
-    return "oer";
-  }
-  if (
-    domain.includes("docs.") ||
-    domain.includes("developer.") ||
-    domain.includes("learn.microsoft.com")
-  ) {
-    return "documentation";
-  }
-  return "educational";
-}
-
 function boostFor(domain: string, trusted: Trusted[]): number {
   const host = domain.toLowerCase();
   const exact = trusted.find((item) => host === item.domain || host.endsWith(`.${item.domain}`));
@@ -54,6 +34,8 @@ async function searchCatalog(
 ): Promise<NormalizedResource[]> {
   const catalog = await prisma.externalResource.findMany();
   return catalog
+    .map(normalizeExternalResource)
+    .filter((item) => item !== null)
     .map((item) => {
       const relevance = scoreExternalResource(
         {
@@ -158,28 +140,30 @@ async function searchBrave(query: string, trusted: Trusted[]): Promise<Normalize
   const data = (await response.json()) as {
     web?: { results?: Array<{ title: string; url: string; description?: string }> };
   };
-  return (data.web?.results ?? []).map((item) => {
-    const domain = extractDomain(item.url);
-    const sourceType = classifySource(domain);
-    return {
-      title: item.title,
-      description: item.description ?? "",
-      url: item.url,
-      domain,
-      source: domain,
-      sourceType,
-      relevance: scoreExternalResource(
-        {
-          title: item.title,
-          description: item.description ?? "",
-          domain,
-          sourceType,
-        },
-        query,
-        boostFor(domain, trusted),
-      ),
-    };
-  });
+  return (data.web?.results ?? [])
+    .map(normalizeExternalResource)
+    .filter((item) => item !== null)
+    .map((item) => {
+      const { domain, sourceType } = item;
+      return {
+        title: item.title,
+        description: item.description ?? "",
+        url: item.url,
+        domain,
+        source: domain,
+        sourceType,
+        relevance: scoreExternalResource(
+          {
+            title: item.title,
+            description: item.description ?? "",
+            domain,
+            sourceType,
+          },
+          query,
+          boostFor(domain, trusted),
+        ),
+      };
+    });
 }
 
 export async function searchExternalResources(
