@@ -40,6 +40,19 @@ export async function PATCH(request: Request) {
       ...(parsed.data.status ? { status: parsed.data.status } : {}),
       ...(parsed.data.role ? { role: parsed.data.role } : {}),
     },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      department: true,
+      semester: true,
+      bio: true,
+      emailVerified: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
   return jsonOk(user);
 }
