@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/http";
 import { canReadNoteMetadata } from "@/lib/note-access";
 import { canManageNote } from "@/lib/permissions";
-import { requireActiveUser } from "@/lib/session";
+import { requireActiveUser, requireAdminUser } from "@/lib/session";
 import { deleteStoredFile } from "@/lib/storage";
 
 export async function GET(
@@ -22,13 +22,21 @@ export async function GET(
     },
   });
 
+  // Only the administrator exception needs a live role/status check.
+  const adminGate =
+    note?.status === "PENDING" &&
+    session?.user?.id &&
+    session.user.id !== note.uploaderId
+      ? await requireAdminUser()
+      : null;
+
   if (
     !note ||
     !canReadNoteMetadata({
       status: note.status,
       uploaderId: note.uploaderId,
       viewerId: session?.user?.id,
-      viewerRole: session?.user?.role,
+      viewerRole: adminGate?.ok ? adminGate.user.role : undefined,
     })
   ) {
     return jsonError("Note not found", 404);
