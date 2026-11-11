@@ -1,3 +1,4 @@
+import { requireAdminUser } from "@/lib/session";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -27,13 +28,21 @@ export default async function NotePage({
       ratings: true,
     },
   });
+  // Only the administrator exception needs a live role/status check.
+  const adminGate =
+    note?.status === "PENDING" &&
+    session?.user?.id &&
+    session.user.id !== note.uploaderId
+      ? await requireAdminUser()
+      : null;
+
   if (
     !note ||
     !canReadNoteMetadata({
       status: note.status,
       uploaderId: note.uploaderId,
       viewerId: session?.user?.id,
-      viewerRole: session?.user?.role,
+      viewerRole: adminGate?.ok ? adminGate.user.role : undefined,
     })
   ) {
     notFound();
