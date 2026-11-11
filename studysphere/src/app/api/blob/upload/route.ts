@@ -74,18 +74,16 @@ export async function POST(request: Request): Promise<NextResponse> {
         const payload = JSON.parse(tokenPayload) as { noteId?: string; userId?: string };
         if (!payload.noteId || !payload.userId) return;
 
-        const note = await prisma.note.findFirst({
+        // Recheck current eligibility and reservation in the publication itself:
+        // a signed completion event may outlive the uploader's platform access.
+        await prisma.note.updateMany({
           where: {
             id: payload.noteId,
             uploaderId: payload.userId,
             status: "PENDING",
+            fileUrl: blob.pathname,
+            uploader: { is: { status: "ACTIVE" } },
           },
-        });
-        if (!note) return;
-        if (blob.pathname !== note.fileUrl) return;
-
-        await prisma.note.update({
-          where: { id: note.id },
           data: { status: "PUBLISHED" },
         });
       },
