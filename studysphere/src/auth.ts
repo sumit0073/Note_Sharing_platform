@@ -61,6 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           role: user.role as "STUDENT" | "ADMIN",
           status: user.status,
+          sessionVersion: user.sessionVersion,
         };
       },
     }),
@@ -94,7 +95,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id!;
         token.role = user.role;
         token.status = user.status;
+        token.sessionVersion = user.sessionVersion;
       }
+      // Missing versions (sessions issued before revocation support) fail closed.
+      if (!token.id || !Number.isInteger(token.sessionVersion)) return null;
+      const current = await prisma.user.findUnique({
+        where: { id: token.id },
+        select: { sessionVersion: true },
+      });
+      if (!current || current.sessionVersion !== token.sessionVersion) return null;
       return token;
     },
     async session({ session, token }) {

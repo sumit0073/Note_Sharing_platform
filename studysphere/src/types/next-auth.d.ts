@@ -10,6 +10,7 @@ declare module "next-auth" {
   }
 
   interface User {
+    sessionVersion: number;
     role: "STUDENT" | "ADMIN";
     status: string;
   }
@@ -17,6 +18,7 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
+    sessionVersion: number;
     id: string;
     role: "STUDENT" | "ADMIN";
     status: string;
