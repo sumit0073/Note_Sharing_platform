@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { loginUrl, wantsHtml } from "@/lib/app-origin";
 import { requireActiveUser } from "@/lib/session";
+import { openStoredFile } from "@/lib/storage";
 import { ensureNoteFile } from "@/lib/note-files";
 import { NextResponse } from "next/server";
 
@@ -36,24 +37,28 @@ export async function GET(
   });
   if (!note) return fileMissingResponse(request);
 
+  // Reject unrelated paths before any storage work.
+  if (relative !== note.fileUrl) return fileMissingResponse(request);
+
   const ensured = await ensureNoteFile(note);
 
-  // Only serve the exact stored file path for this note
-  if (relative !== ensured.relativePath && relative !== note.fileUrl) {
-    return fileMissingResponse(request);
+  if (!ensured.available) return fileMissingResponse(request);
+  const file = await openStoredFile(ensured.relativePath);
+  if (!file) return fileMissingResponse(request);
+
+  try {
+    return new Response(file.stream, {
+      headers: {
+        "Content-Type":
+          file.contentType ??
+          (note.fileType === "pdf" ? "application/pdf" : "application/octet-stream"),
+        "Content-Disposition": "inline",
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch (error) {
+    await file.stream.cancel().catch(() => {});
+    throw error;
   }
-
-  if (!ensured.file) return fileMissingResponse(request);
-  const file = ensured.file;
-
-  return new Response(file.stream, {
-    headers: {
-      "Content-Type":
-        file.contentType ??
-        (note.fileType === "pdf" ? "application/pdf" : "application/octet-stream"),
-      "Content-Disposition": "inline",
-      "Cache-Control": "private, no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
 }

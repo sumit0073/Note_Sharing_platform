@@ -3,7 +3,6 @@ import { buildSimplePdf } from "@/lib/simple-pdf";
 import {
   buildNoteRelativePath,
   isBlobStorageEnabled,
-  openStoredFile,
   verifyStoredObject,
   writeStoredFile,
 } from "@/lib/storage";
@@ -16,27 +15,24 @@ type NoteFileRecord = {
 };
 
 /**
- * Open a note's stored PDF. If Blob/local storage is missing the object
+ * Ensure a note's stored PDF is available without opening a stream. If Blob/local storage is missing the object
  * (common for seed notes after the Vercel migration), write a replacement
  * PDF at a stable path and update the row.
  */
 export async function ensureNoteFile(note: NoteFileRecord): Promise<{
   relativePath: string;
-  file: { stream: ReadableStream; contentType?: string } | null;
+  available: boolean;
   restored: boolean;
 }> {
   if (note.fileUrl && note.fileUrl !== "pending") {
     const existing = await verifyStoredObject(note.fileUrl);
     if (existing) {
-      const file = await openStoredFile(note.fileUrl);
-      if (file) {
-        return { relativePath: note.fileUrl, file, restored: false };
-      }
+      return { relativePath: note.fileUrl, available: true, restored: false };
     }
   }
 
   if (!isBlobStorageEnabled() && process.env.ALLOW_LOCAL_RESTORE !== "1") {
-    return { relativePath: note.fileUrl, file: null, restored: false };
+    return { relativePath: note.fileUrl, available: false, restored: false };
   }
 
   const relativePath =
@@ -65,10 +61,9 @@ export async function ensureNoteFile(note: NoteFileRecord): Promise<{
       },
     });
 
-    const file = await openStoredFile(relativePath);
-    return { relativePath, file, restored: true };
+    return { relativePath, available: true, restored: true };
   } catch {
     console.error("[note-files] could not restore missing file");
-    return { relativePath: note.fileUrl, file: null, restored: false };
+    return { relativePath: note.fileUrl, available: false, restored: false };
   }
 }

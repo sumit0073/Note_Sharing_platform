@@ -43,7 +43,7 @@ export default async function NotePage({
   const ensured = session?.user ? await ensureNoteFile(note) : null;
   const fileUrl = ensured?.relativePath ?? note.fileUrl;
   const previewUrl = `/api/files/${fileUrl}`;
-  const fileAvailable = Boolean(ensured?.file);
+  const fileAvailable = Boolean(ensured?.available);
 
   return (
     <section className="mx-auto grid max-w-6xl gap-8 px-4 py-10 lg:grid-cols-[1.4fr_0.8fr]">
