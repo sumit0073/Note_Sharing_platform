@@ -47,6 +47,8 @@ describe("ensureNoteFile", () => {
 
     const result = await ensureNoteFile(note);
     expect(result.restored).toBe(false);
+    expect(result.available).toBe(true);
+    expect(openStoredFile).not.toHaveBeenCalled();
     expect(writeStoredFile).not.toHaveBeenCalled();
     expect(updateNote).not.toHaveBeenCalled();
   });
@@ -62,9 +64,7 @@ describe("ensureNoteFile", () => {
     expect(result.restored).toBe(true);
     expect(writeStoredFile).toHaveBeenCalledOnce();
     expect(updateNote).toHaveBeenCalledOnce();
-    expect(result.file).toEqual({
-      stream: {},
-      contentType: "application/pdf",
-    });
+    expect(result.available).toBe(true);
+    expect(openStoredFile).not.toHaveBeenCalled();
   });
 });

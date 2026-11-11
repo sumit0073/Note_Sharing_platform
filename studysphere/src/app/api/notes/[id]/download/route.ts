@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { loginUrl, wantsHtml } from "@/lib/app-origin";
 import { requireActiveUser } from "@/lib/session";
+import { openStoredFile } from "@/lib/storage";
 import { ensureNoteFile } from "@/lib/note-files";
 import { NextResponse } from "next/server";
 
@@ -23,7 +24,10 @@ export async function GET(
     return jsonError("Note not found", 404);
   }
 
-  const { file } = await ensureNoteFile(note);
+  const ensured = await ensureNoteFile(note);
+  const file = ensured.available
+    ? await openStoredFile(ensured.relativePath)
+    : null;
   if (!file) {
     if (wantsHtml(request)) {
       return new NextResponse(
@@ -34,23 +38,28 @@ export async function GET(
     return jsonError("File missing", 404);
   }
 
-  await prisma.note.update({
-    where: { id },
-    data: { downloads: { increment: 1 } },
-  });
+  try {
+    await prisma.note.update({
+      where: { id },
+      data: { downloads: { increment: 1 } },
+    });
 
-  const filename = note.title.replace(/[^\w\- ]+/g, "") || "note";
+    const filename = note.title.replace(/[^\w\- ]+/g, "") || "note";
 
-  return new Response(file.stream, {
-    headers: {
-      "Content-Type":
-        file.contentType ??
-        (note.fileType === "pdf"
-          ? "application/pdf"
-          : "application/octet-stream"),
-      "Content-Disposition": `attachment; filename="${filename}.${note.fileType}"`,
-      "Cache-Control": "private, no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
+    return new Response(file.stream, {
+      headers: {
+        "Content-Type":
+          file.contentType ??
+          (note.fileType === "pdf"
+            ? "application/pdf"
+            : "application/octet-stream"),
+        "Content-Disposition": `attachment; filename="${filename}.${note.fileType}"`,
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch (error) {
+    await file.stream.cancel().catch(() => {});
+    throw error;
+  }
 }
