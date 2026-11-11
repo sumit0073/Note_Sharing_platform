@@ -8,19 +8,27 @@ export async function POST(request: Request) {
 
   const record = await prisma.verificationToken.findUnique({
     where: { token },
-    include: { user: true },
   });
   if (!record || record.expiresAt < new Date()) {
     return jsonError("This verification link is invalid or has expired");
   }
 
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: record.userId },
+  const [activation] = await prisma.$transaction([
+    prisma.user.updateMany({
+      // Check status and token authority at the write, so suspension wins races.
+      where: {
+        id: record.userId,
+        status: "PENDING_VERIFICATION",
+        verificationTokens: { some: { token, expiresAt: { gte: new Date() } } },
+      },
       data: { emailVerified: new Date(), status: "ACTIVE" },
     }),
     prisma.verificationToken.deleteMany({ where: { userId: record.userId } }),
   ]);
+
+  if (activation.count === 0) {
+    return jsonError("This verification link is no longer valid for this account");
+  }
 
   return jsonOk({ message: "Email verified. You can now sign in." });
 }
