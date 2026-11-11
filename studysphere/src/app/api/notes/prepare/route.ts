@@ -61,6 +61,7 @@ export async function POST(request: Request) {
       uploaderId: gate.user.id,
       subjectId: subject.id,
       status: "PENDING",
+      uploadPending: true,
       tags: {
         create: await Promise.all(
           tagNames.map(async (name) => {

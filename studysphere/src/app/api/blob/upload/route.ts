@@ -49,6 +49,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             id: noteId,
             uploaderId: gate.user.id,
             status: "PENDING",
+            uploadPending: true,
           },
         });
         if (!note) {
@@ -79,14 +80,20 @@ export async function POST(request: Request): Promise<NextResponse> {
             id: payload.noteId,
             uploaderId: payload.userId,
             status: "PENDING",
+            uploadPending: true,
           },
         });
         if (!note) return;
         if (blob.pathname !== note.fileUrl) return;
 
-        await prisma.note.update({
-          where: { id: note.id },
-          data: { status: "PUBLISHED" },
+        await prisma.note.updateMany({
+          where: {
+            id: note.id,
+            uploaderId: payload.userId,
+            status: "PENDING",
+            uploadPending: true,
+          },
+          data: { status: "PUBLISHED", uploadPending: false },
         });
       },
     });
