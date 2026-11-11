@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/http";
 import { requireAdminUser } from "@/lib/session";
@@ -35,22 +36,32 @@ export async function PATCH(request: Request) {
   });
   if (!report) return jsonError("Report not found", 404);
 
-  if (parsed.data.removeNote) {
-    await prisma.note.update({
-      where: { id: report.noteId },
-      data: { status: "REMOVED" },
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      // Check the status transition before applying moderation side effects.
+      const updated = await tx.report.update({
+        where: { id: report.id },
+        data: { status: parsed.data.status, reviewedAt: new Date() },
+      });
+      if (parsed.data.removeNote) {
+        await tx.note.update({
+          where: { id: report.noteId },
+          data: { status: "REMOVED" },
+        });
+      }
+      if (parsed.data.suspendUser) {
+        await tx.user.update({
+          where: { id: report.note.uploaderId },
+          data: { status: "SUSPENDED" },
+        });
+      }
+      return updated;
     });
+    return jsonOk(updated);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return jsonError("This user already has an open report for this note", 409);
+    }
+    throw error;
   }
-  if (parsed.data.suspendUser) {
-    await prisma.user.update({
-      where: { id: report.note.uploaderId },
-      data: { status: "SUSPENDED" },
-    });
-  }
-
-  const updated = await prisma.report.update({
-    where: { id: report.id },
-    data: { status: parsed.data.status, reviewedAt: new Date() },
-  });
-  return jsonOk(updated);
 }
