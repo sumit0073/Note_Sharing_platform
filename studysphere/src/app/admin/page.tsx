@@ -1,6 +1,9 @@
+import { requireAdminPageUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 
 export default async function AdminHomePage() {
+  await requireAdminPageUser("/admin");
+
   const [users, notes, reports, searches] = await Promise.all([
     prisma.user.count(),
     prisma.note.count({ where: { status: "PUBLISHED" } }),

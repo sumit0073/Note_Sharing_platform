@@ -85,3 +85,10 @@ export async function requireActivePageUser(nextPath: string): Promise<ActiveUse
   }
   return result.user;
 }
+
+/** Admin pages must authorize before reading data, independently of layouts. */
+export async function requireAdminPageUser(nextPath: string): Promise<ActiveUser> {
+  const user = await requireActivePageUser(nextPath);
+  if (!isAdmin(user.role)) redirect("/dashboard");
+  return user;
+}

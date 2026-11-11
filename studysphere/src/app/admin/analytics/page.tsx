@@ -1,6 +1,9 @@
+import { requireAdminPageUser } from "@/lib/session";
 import { getAdminAnalytics } from "@/lib/analytics";
 
 export default async function AdminAnalyticsPage() {
+  await requireAdminPageUser("/admin/analytics");
+
   const data = await getAdminAnalytics();
 
   return (
