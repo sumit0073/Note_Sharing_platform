@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { TurnstileField } from "@/components/turnstile-field";
 
 export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
-  const [resetUrl, setResetUrl] = useState("");
   const [error, setError] = useState("");
   const [resetSignal, setResetSignal] = useState(0);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -32,11 +30,9 @@ export default function ForgotPasswordPage() {
       setTurnstileToken(null);
       setResetSignal((value) => value + 1);
       setMessage("");
-      setResetUrl("");
       return;
     }
     setMessage(data.data?.message ?? "Request sent");
-    setResetUrl(data.data?.resetUrl ?? "");
   }
 
   return (
@@ -61,14 +57,6 @@ export default function ForgotPasswordPage() {
         <button className="w-full rounded-full bg-forest py-3 text-white">Send reset link</button>
       </form>
       {message && <p className="mt-4 text-sm">{message}</p>}
-      {resetUrl && (
-        <p className="mt-2 text-sm">
-          Dev reset link:{" "}
-          <Link className="underline" href={resetUrl}>
-            Reset password
-          </Link>
-        </p>
-      )}
     </section>
   );
 }

@@ -18,8 +18,9 @@ const SEND_TIMEOUT_MS = 10_000;
  * Email delivery via Resend.
  *
  * Requires RESEND_API_KEY and EMAIL_FROM. When they are absent (local dev),
- * nothing is sent and the register / forgot-password routes keep returning the
- * link in the response for non-production instead.
+ * nothing is sent. Password-reset links are only delivered by email and are
+ * never returned in HTTP responses. Registration still returns verification
+ * links outside production.
  *
  * Message bodies contain verification and reset tokens, so nothing here logs
  * the body, the link, or the recipient.
