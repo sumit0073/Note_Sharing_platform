@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { NoteCard } from "@/components/note-card";
 import { WebCard } from "@/components/web-card";
 import { requireActivePageUser } from "@/lib/session";
+import { normalizeExternalResource } from "@/lib/search/external-source";
 import { average } from "@/lib/utils";
 
 export default async function LibraryPage() {
@@ -22,13 +23,18 @@ export default async function LibraryPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const safeBookmarks = bookmarks.map((bookmark) => ({
+    ...bookmark,
+    external: bookmark.external ? normalizeExternalResource(bookmark.external) : null,
+  }));
+
   return (
     <section className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="font-serif text-4xl">My library</h1>
       <p className="mt-2 text-muted">Community notes and external resources you saved.</p>
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {bookmarks.length === 0 && <p className="text-muted">Nothing saved yet.</p>}
-        {bookmarks.map((bookmark) =>
+        {safeBookmarks.map((bookmark) =>
           bookmark.note ? (
             <NoteCard
               key={bookmark.id}

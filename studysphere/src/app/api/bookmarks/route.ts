@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/http";
 import { createNoteBookmark } from "@/lib/bookmarks";
 import { requireActiveUser } from "@/lib/session";
+import { externalSource, normalizeExternalResource } from "@/lib/search/external-source";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -11,7 +12,7 @@ const createSchema = z.object({
     .object({
       title: z.string().min(1),
       url: z.string().url(),
-      domain: z.string().min(1),
+      domain: z.string().optional(),
       description: z.string().optional(),
       sourceType: z.string().optional(),
     })
@@ -36,7 +37,10 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return jsonOk(bookmarks);
+  return jsonOk(bookmarks.map((bookmark) => ({
+    ...bookmark,
+    external: bookmark.external ? normalizeExternalResource(bookmark.external) : null,
+  })));
 }
 
 export async function POST(request: Request) {
@@ -57,15 +61,17 @@ export async function POST(request: Request) {
   }
 
   if (!parsed.data.external) return jsonError("External resource is required");
+  const source = externalSource(parsed.data.external.url);
+  if (!source) return jsonError("External URL must use HTTP or HTTPS");
   const resource = await prisma.externalResource.upsert({
     where: { url: parsed.data.external.url },
-    update: {},
+    update: source,
     create: {
       title: parsed.data.external.title,
       url: parsed.data.external.url,
-      domain: parsed.data.external.domain,
+      domain: source.domain,
       description: parsed.data.external.description ?? "",
-      sourceType: parsed.data.external.sourceType ?? "educational",
+      sourceType: source.sourceType,
     },
   });
 
