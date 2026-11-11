@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/http";
 import { requireActiveUser } from "@/lib/session";
@@ -22,14 +23,20 @@ export async function POST(
   });
   if (existing) return jsonError("You already have an open report for this note");
 
-  const report = await prisma.report.create({
-    data: {
-      noteId: id,
-      userId: gate.user.id,
-      reason: parsed.data.reason,
-      details: parsed.data.details,
-    },
-  });
-
-  return jsonOk(report, 201);
+  try {
+    const report = await prisma.report.create({
+      data: {
+        noteId: id,
+        userId: gate.user.id,
+        reason: parsed.data.reason,
+        details: parsed.data.details,
+      },
+    });
+    return jsonOk(report, 201);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return jsonError("You already have an open report for this note");
+    }
+    throw error;
+  }
 }

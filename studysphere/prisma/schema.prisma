@@ -125,6 +125,8 @@ model Bookmark {
   @@index([userId])
 }
 
+// One OPEN report per user/note is enforced by a partial unique SQL index
+// in migration 20261111120000_unique_open_reports (not expressible in Prisma 6).
 model Report {
   id         String    @id @default(cuid())
   noteId     String
